@@ -5,13 +5,6 @@
 <meta name="theme-color" content="#f7f5f0">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Prime Table — Concept Prototype</title>
-<script type="text/javascript">
-    (function(c,l,a,r,i,t,y){
-        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-    })(window, document, "clarity", "script", "zgi8n656xn");
-</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -187,6 +180,12 @@ details.more[open] summary{margin-bottom:8px}
 .help dt.hl{background:rgba(168,130,58,.16);color:var(--gold2)}
 kbd{border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:0 6px;font-size:12px;font-family:var(--sans)}
 .btn:focus-visible,.chip:focus-visible,button:focus-visible{outline:2px solid var(--gold2);outline-offset:2px}
+.consent{position:fixed;left:0;right:0;bottom:var(--navh,0px);z-index:45;background:var(--panel);border-top:1px solid var(--line);box-shadow:0 -4px 18px rgba(20,24,43,.08);padding:12px 0}
+.consent[hidden]{display:none}
+.consent p{font-size:13px;color:var(--muted);margin:0 0 10px}
+.consent .cbtns{display:flex;gap:10px}
+.consent .cbtns button{flex:1;border-radius:999px;padding:9px 16px;border:1px solid var(--line);background:var(--panel2);color:var(--text);font-weight:600;font-size:14px;cursor:pointer}
+body.has-consent main{padding-bottom:230px}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 </style>
 </head>
@@ -206,9 +205,16 @@ kbd{border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;paddi
 </div>
 <div id="toasts" class="toasts" aria-live="polite"></div>
 
-<script>
+<div id="consent" class="consent" role="region" aria-label="Consent notice" hidden><div class="wrap">
+  <p>This class prototype records which version you saw and what you pressed, to test a design. Nothing about your visit leaves this browser unless you agree.</p>
+  <div class="cbtns"><button type="button" data-consent="granted">Accept</button><button type="button" data-consent="denied">Decline</button></div>
+</div></div>
+
+<script type="module">
+import { variant, track, consent, setConsent, loadClarity } from "./src/pt.js";
 (function(){
 'use strict';
+const VARIANT=variant();   /* read once, before the first render */
 
 /* ---------- helpers ---------- */
 const DAY=864e5,HOUR=36e5,MIN=6e4;
@@ -442,7 +448,7 @@ function viewLanding(){
     <div class="eyebrow">Members only · Singapore</div>
     <h1>The tables everyone wants. Held for members.</h1>
     <p class="muted">Singapore’s 25 hardest-to-book restaurants release prime-time seats to Prime Table members each week. You prepay the minimum spend, and every dollar goes toward your bill.</p>
-    <div class="btns" style="margin-top:16px">${isMember()?'':'<button class="btn" data-action="nav" data-view="apply">Apply for membership</button>'}<button class="btn ghost" data-action="nav" data-view="discover">Browse the 25</button></div>
+    <div class="btns" style="margin-top:16px">${isMember()||VARIANT!=='B'?'':'<button class="btn" data-action="nav" data-view="apply" data-cta="main">Apply for membership</button>'}<button class="btn ghost" data-action="nav" data-view="discover">Browse the 25</button></div>
   </section>
   <div class="sectionhead"><h3>How it works</h3></div>
   <div class="card steps">
@@ -462,7 +468,7 @@ function viewLanding(){
     <li><b>Two strikes</b> (late cancellations or no-shows) in a year pause booking for 90 days.</li>
     <li><b>Dining credit</b> expires after 12 months and has no cash value.</li>
   </ul></div>
-  ${isMember()?'':'<div style="margin-top:22px" class="btns"><button class="btn block" data-action="nav" data-view="apply">Apply for membership</button><button class="btn quiet block" data-action="demo-enter">Skip: try the demo as a member</button></div>'}
+  ${isMember()?'':'<div style="margin-top:22px" class="btns"><button class="btn block" data-action="nav" data-view="apply" data-cta="main">Apply for membership</button><button class="btn quiet block" data-action="demo-enter">Skip: try the demo as a member</button></div>'}
   ${footer()}`;
 }
 function tierCard(k){
@@ -884,7 +890,7 @@ function openProfile(){
   <div class="rolebtns">${[['member','Member'],['partner','Restaurant partner'],['admin','Admin']].map(r=>`<button class="chip${S.role===r[0]?' on':''}" data-action="set-role" data-role="${r[0]}" aria-pressed="${S.role===r[0]}">${r[1]}</button>`).join('')}</div>`;
   if(!u){
     sheet(`<div class="eyebrow">My Profile</div><h2>You’re not a member yet</h2><p class="muted">Members book prime tables at Singapore’s 25 hardest-to-book restaurants.</p>
-    <div class="btns"><button class="btn" data-action="nav" data-view="apply">Apply for membership</button><button class="btn ghost" data-action="demo-enter">Try the demo</button></div>
+    <div class="btns"><button class="btn" data-action="nav" data-view="apply" data-cta="main">Apply for membership</button><button class="btn ghost" data-action="demo-enter">Try the demo</button></div>
     <div class="menu card" style="margin-top:18px;padding:4px 16px"><button data-action="nav" data-view="landing">Compare membership tiers <span class="dim">→</span></button><button data-action="help">Help & FAQ <span class="dim">→</span></button></div>${roles}`);return;
   }
   if(u.status!=='active'){
@@ -957,6 +963,7 @@ function help(topic){
 document.addEventListener('click',e=>{
   const a=e.target.closest('[data-action]');if(!a)return;
   const act=a.dataset.action,id=a.dataset.id;
+  if(a.dataset.cta==='main')track('cta_click');
   switch(act){
     case 'nav':if(S.role!=='member'){S.role='member';}go(a.dataset.view);break;
     case 'close':closeSheet();break;
@@ -1041,6 +1048,7 @@ document.addEventListener('submit',e=>{
     const tierKey=f.tier.value;
     S.user={name:f.name.value.trim(),email:f.email.value.trim(),id:'PT-'+(2000+Math.floor(R0()*900)),tier:tierKey,status:'pending',strikes:[],sentPasses:[]};
     S.applications.unshift({id:'a'+(aid++),name:S.user.name,email:S.user.email,tier:tierKey,at:now(),status:'pending',self:true,note:f.why.value.trim()});
+    track('goal_complete');
     toast('Application submitted.');render();
   }
   else if(f.id==='checkoutForm'){const b=$('#payBtn');b.disabled=true;b.textContent='Processing…';setTimeout(()=>confirmBooking(f),650);}
@@ -1107,6 +1115,22 @@ document.addEventListener('keydown',e=>{
 seed();
 {const hv=location.hash.slice(1);if(VIEWS[hv])S.view=hv;}
 render();
+
+/* ---------- experiment: Clarity, first screen view, consent notice ---------- */
+if(consent()==='granted')loadClarity();
+track('screen_view');
+if(consent()===null){
+  const box=$('#consent'),nav=$('#nav');
+  const fit=()=>document.documentElement.style.setProperty('--navh',(nav.hidden?0:nav.offsetHeight)+'px');
+  fit();
+  const ro=('ResizeObserver' in window)?new ResizeObserver(fit):null;if(ro)ro.observe(nav);
+  box.hidden=false;document.body.classList.add('has-consent');
+  box.addEventListener('click',e=>{
+    const b=e.target.closest('[data-consent]');if(!b)return;
+    setConsent(b.dataset.consent);
+    box.hidden=true;document.body.classList.remove('has-consent');if(ro)ro.disconnect();
+  });
+}
 })();
 </script>
 </body>
